@@ -4,7 +4,7 @@
         "access": "public",
         "registry": "https://registry.npmjs.org/"
     },
-    "version": "1.0.37",
+    "version": "1.0.28",
     "description": "JavaScript DXF file viewer",
     "main": "src/index.js",
     "author": "Artyom Lebedev<artyom.lebedev@gmail.com>",
