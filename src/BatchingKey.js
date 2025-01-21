@@ -11,12 +11,14 @@ export class BatchingKey {
      * @param lineType {?number} Line type ID, null for non-lines. Zero is default type (solid
      *  line).
      */
-    constructor(layerName, blockName, geometryType, color, lineType) {
+    constructor(layerName, blockName, geometryType, color, lineType, block, parentBlock) {
         this.layerName = layerName ?? null
         this.blockName = blockName ?? null
         this.geometryType = geometryType ?? null
         this.color = color
         this.lineType = lineType ?? null
+        this.block = block ?? ''
+        this.parentBlock = parentBlock ?? ''
     }
 
     /** Comparator function. Fields lexical order corresponds to the constructor arguments order.
@@ -39,17 +41,28 @@ export class BatchingKey {
         if (c !== 0) {
             return c
         }
+
+        c = CompareValues(this.block, other.block)
+        if (c !== 0) {
+            return c
+        }
+
+        c = CompareValues(this.parentBlock, other.parentBlock)
+        if (c !== 0) {
+            return c
+        }
+
         return CompareValues(this.lineType, other.lineType)
     }
 
     IsIndexed() {
         return this.geometryType === BatchingKey.GeometryType.INDEXED_LINES ||
-               this.geometryType === BatchingKey.GeometryType.INDEXED_TRIANGLES
+            this.geometryType === BatchingKey.GeometryType.INDEXED_TRIANGLES
     }
 
     IsInstanced() {
         return this.geometryType === BatchingKey.GeometryType.BLOCK_INSTANCE ||
-               this.geometryType === BatchingKey.GeometryType.POINT_INSTANCE
+            this.geometryType === BatchingKey.GeometryType.POINT_INSTANCE
     }
 }
 

@@ -1,5 +1,9 @@
 {
-    "name": "dxf-viewer",
+    "name": "@meoc/dxf-viewer",
+    "publishConfig": {
+        "access": "public",
+        "registry": "https://registry.npmjs.org/"
+    },
     "version": "1.0.37",
     "description": "JavaScript DXF file viewer",
     "main": "src/index.js",

@@ -34,10 +34,10 @@ export type DxfViewerOptions = {
 
 export type DxfViewerLoadParams = {
     url: string,
-    fonts: string[] | null,
-    progressCbk: ((phase: "font" | "fetch" | "parse" | "prepare",
+    fonts?: string[] | null,
+    progressCbk?: ((phase: "font" | "fetch" | "parse" | "prepare",
                    processedSize: number, totalSize: number) => void) | null,
-    workerFactory: (() => Worker) | null
+    workerFactory?: (() => Worker) | null
 }
 
 export type LayerInfo = {
@@ -92,3 +92,34 @@ export function RegisterPattern(pattern: Pattern, isMetric: boolean): void
 
 /** @return {?Pattern} */
 export function LookupPattern(name: string, isMetric: boolean): Pattern | null
+
+
+/** See DxfViewer.DefaultOptions for default values and documentation. */
+export type DxfParserOptions = {
+}
+
+
+export type Point2D = {
+    x: number
+    y: number
+}
+
+export type DxfEntity = {
+    vertices: Point2D[]
+    color: number
+    layer: string
+    geometryType: number
+    block: string
+    parentBlock: string
+}
+
+export declare class DxfParser {
+    constructor(options?: DxfParserOptions | null)
+    Clear(): void
+    Destroy(): void
+    GetLayers(): Iterable<LayerInfo>
+    getOrigin(): THREE.Vector2
+    getBounds(): {maxX: number, maxY: number, minX: number, minY: number} 
+    Load(params: DxfViewerLoadParams): Promise<void>
+    getEntities(): DxfEntity[]
+}

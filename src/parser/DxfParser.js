@@ -58,25 +58,25 @@ export default function DxfParser() {
     registerDefaultEntityHandlers(this);
 }
 
-DxfParser.prototype.parse = function(source, done) {
+DxfParser.prototype.parse = function (source, done) {
     throw new Error("read() not implemented. Use readSync()");
 };
 
-DxfParser.prototype.registerEntityHandler = function(handlerType) {
+DxfParser.prototype.registerEntityHandler = function (handlerType) {
     var instance = new handlerType();
     this._entityHandlers[handlerType.ForEntityName] = instance;
 }
 
-DxfParser.prototype.parseSync = function(source) {
-    if(typeof(source) === 'string') {
+DxfParser.prototype.parseSync = function (source) {
+    if (typeof (source) === 'string') {
         return this._parse(source);
-    }else {
-        console.error('Cannot read DXF source of type `' + typeof(source));
+    } else {
+        console.error('Cannot read DXF source of type `' + typeof (source));
         return null;
     }
 };
 
-DxfParser.prototype.parseStream = function(stream, done) {
+DxfParser.prototype.parseStream = function (stream, done) {
 
     var dxfString = "";
     var self = this;
@@ -92,7 +92,7 @@ DxfParser.prototype.parseStream = function(stream, done) {
     function onEnd() {
         try {
             var dxf = self._parse(dxfString);
-        } catch(err) {
+        } catch (err) {
             return done(err);
         }
         done(null, dxf);
@@ -103,7 +103,7 @@ DxfParser.prototype.parseStream = function(stream, done) {
     }
 };
 
-DxfParser.prototype._parse = function(dxfString) {
+DxfParser.prototype._parse = function (dxfString) {
     var scanner, curr, dxf = {}, lastHandle = 0;
     var dxfLinesArray = dxfString.split(/\r\n|\r|\n/g);
 
@@ -114,10 +114,10 @@ DxfParser.prototype._parse = function(dxfString) {
 
     var self = this;
 
-    var parseAll = function() {
+    var parseAll = function () {
         curr = scanner.next();
-        while(!scanner.isEOF()) {
-            if(curr.code === 0 && curr.value === 'SECTION') {
+        while (!scanner.isEOF()) {
+            if (curr.code === 0 && curr.value === 'SECTION') {
                 curr = scanner.next();
 
                 // Be sure we are reading a section code
@@ -135,15 +135,15 @@ DxfParser.prototype._parse = function(dxfString) {
                     log.debug('> BLOCKS');
                     dxf.blocks = parseBlocks();
                     log.debug('<');
-                } else if(curr.value === 'ENTITIES') {
+                } else if (curr.value === 'ENTITIES') {
                     log.debug('> ENTITIES');
                     dxf.entities = parseEntities(false);
                     log.debug('<');
-                } else if(curr.value === 'TABLES') {
+                } else if (curr.value === 'TABLES') {
                     log.debug('> TABLES');
                     dxf.tables = parseTables();
                     log.debug('<');
-                } else if(curr.value === 'EOF') {
+                } else if (curr.value === 'EOF') {
                     log.debug('EOF');
                 } else {
                     log.warn('Skipping section \'%s\'', curr.value);
@@ -155,7 +155,7 @@ DxfParser.prototype._parse = function(dxfString) {
         }
     };
 
-    var groupIs = function(code, value) {
+    var groupIs = function (code, value) {
         return curr.code === code && curr.value === value;
     };
 
@@ -163,7 +163,7 @@ DxfParser.prototype._parse = function(dxfString) {
      *
      * @return {object} header
      */
-    var parseHeader = function() {
+    var parseHeader = function () {
         // interesting variables:
         //  $ACADVER, $VIEWDIR, $VIEWSIZE, $VIEWCTR, $TDCREATE, $TDUPDATE
         // http://www.autodesk.com/techpubs/autocad/acadr14/dxf/header_section_al_u05_c.htm
@@ -173,20 +173,20 @@ DxfParser.prototype._parse = function(dxfString) {
         // loop through header variables
         curr = scanner.next();
 
-        while(true) {
-            if(groupIs(0, 'ENDSEC')) {
+        while (true) {
+            if (groupIs(0, 'ENDSEC')) {
                 if (currVarName != null) header[currVarName] = currVarValue;
                 break;
-            } else if(curr.code === 9) {
+            } else if (curr.code === 9) {
                 if (currVarName != null) header[currVarName] = currVarValue;
                 currVarName = curr.value;
                 // Filter here for particular variables we are interested in
             } else {
-                if(curr.code === 10) {
+                if (curr.code === 10) {
                     currVarValue = { x: curr.value };
-                } else if(curr.code === 20) {
+                } else if (curr.code === 20) {
                     currVarValue.y = curr.value;
-                } else if(curr.code === 30) {
+                } else if (curr.code === 30) {
                     currVarValue.z = curr.value;
                 } else {
                     currVarValue = curr.value;
@@ -194,7 +194,6 @@ DxfParser.prototype._parse = function(dxfString) {
             }
             curr = scanner.next();
         }
-        // console.log(util.inspect(header, { colors: true, depth: null }));
         curr = scanner.next(); // swallow up ENDSEC
         return header;
     };
@@ -203,22 +202,22 @@ DxfParser.prototype._parse = function(dxfString) {
     /**
      *
      */
-    var parseBlocks = function() {
+    var parseBlocks = function () {
         var blocks = {}, block;
 
         curr = scanner.next();
 
-        while(curr.value !== 'EOF') {
-            if(groupIs(0, 'ENDSEC')) {
+        while (curr.value !== 'EOF') {
+            if (groupIs(0, 'ENDSEC')) {
                 break;
             }
 
-            if(groupIs(0, 'BLOCK')) {
+            if (groupIs(0, 'BLOCK')) {
                 log.debug('block {');
                 block = parseBlock();
                 log.debug('}');
                 ensureHandle(block);
-                if(!block.name)
+                if (!block.name)
                     log.error('block with handle "' + block.handle + '" is missing a name.');
                 else
                     blocks[block.name] = block;
@@ -230,12 +229,12 @@ DxfParser.prototype._parse = function(dxfString) {
         return blocks;
     };
 
-    var parseBlock = function() {
+    var parseBlock = function () {
         var block = {};
         curr = scanner.next();
 
-        while(curr.value !== 'EOF') {
-            switch(curr.code) {
+        while (curr.value !== 'EOF') {
+            switch (curr.code) {
                 case 1:
                     block.xrefPath = curr.value;
                     curr = scanner.next();
@@ -286,7 +285,7 @@ DxfParser.prototype._parse = function(dxfString) {
                     curr = scanner.next();
                     break;
                 case 0:
-                    if(curr.value == 'ENDBLK')
+                    if (curr.value == 'ENDBLK')
                         break;
                     block.entities = parseEntities(true);
                     break;
@@ -295,7 +294,7 @@ DxfParser.prototype._parse = function(dxfString) {
                     curr = scanner.next();
             }
 
-            if(groupIs(0, 'ENDBLK')) {
+            if (groupIs(0, 'ENDBLK')) {
                 curr = scanner.next();
                 break;
             }
@@ -307,18 +306,18 @@ DxfParser.prototype._parse = function(dxfString) {
      * parseTables
      * @return {Object} Object representing tables
      */
-    var parseTables = function() {
+    var parseTables = function () {
         var tables = {};
         curr = scanner.next();
-        while(curr.value !== 'EOF') {
-            if(groupIs(0, 'ENDSEC'))
+        while (curr.value !== 'EOF') {
+            if (groupIs(0, 'ENDSEC'))
                 break;
 
-            if(groupIs(0, 'TABLE')) {
+            if (groupIs(0, 'TABLE')) {
                 curr = scanner.next();
 
                 var tableDefinition = tableDefinitions[curr.value];
-                if(tableDefinition) {
+                if (tableDefinition) {
                     log.debug(curr.value + ' Table {');
                     tables[tableDefinitions[curr.value].tableName] = parseTable();
                     log.debug('}');
@@ -337,16 +336,16 @@ DxfParser.prototype._parse = function(dxfString) {
 
     const END_OF_TABLE_VALUE = 'ENDTAB';
 
-    var parseTable = function() {
+    var parseTable = function () {
         var tableDefinition = tableDefinitions[curr.value],
             table = {},
             expectedCount = 0,
             actualCount;
 
         curr = scanner.next();
-        while(!groupIs(0, END_OF_TABLE_VALUE)) {
+        while (!groupIs(0, END_OF_TABLE_VALUE)) {
 
-            switch(curr.code) {
+            switch (curr.code) {
                 case 5:
                     table.handle = curr.value;
                     curr = scanner.next();
@@ -356,10 +355,10 @@ DxfParser.prototype._parse = function(dxfString) {
                     curr = scanner.next();
                     break;
                 case 100:
-                    if(curr.value === 'AcDbSymbolTable') {
+                    if (curr.value === 'AcDbSymbolTable') {
                         // ignore
                         curr = scanner.next();
-                    }else{
+                    } else {
                         logUnhandledGroup(curr);
                         curr = scanner.next();
                     }
@@ -369,7 +368,7 @@ DxfParser.prototype._parse = function(dxfString) {
                     curr = scanner.next();
                     break;
                 case 0:
-                    if(curr.value === tableDefinition.dxfSymbolName) {
+                    if (curr.value === tableDefinition.dxfSymbolName) {
                         table[tableDefinition.tableRecordsProperty] = tableDefinition.parseTableRecords();
                     } else {
                         logUnhandledGroup(curr);
@@ -383,12 +382,12 @@ DxfParser.prototype._parse = function(dxfString) {
         }
         var tableRecords = table[tableDefinition.tableRecordsProperty];
         if (tableRecords) {
-            if(tableRecords.constructor === Array){
+            if (tableRecords.constructor === Array) {
                 actualCount = tableRecords.length;
-            } else if(typeof(tableRecords) === 'object') {
+            } else if (typeof (tableRecords) === 'object') {
                 actualCount = Object.keys(tableRecords).length;
             }
-            if(expectedCount !== actualCount) {
+            if (expectedCount !== actualCount) {
                 log.warn(`Parsed ${actualCount} ${tableDefinition.dxfSymbolName}'s but expected ${expectedCount}`);
             }
         } else {
@@ -398,15 +397,15 @@ DxfParser.prototype._parse = function(dxfString) {
         return table;
     };
 
-    var parseViewPortRecords = function() {
+    var parseViewPortRecords = function () {
         var viewPorts = [], // Multiple table entries may have the same name indicating a multiple viewport configuration
             viewPort = {};
 
         log.debug('ViewPort {');
         curr = scanner.next();
-        while(!groupIs(0, END_OF_TABLE_VALUE)) {
+        while (!groupIs(0, END_OF_TABLE_VALUE)) {
 
-            switch(curr.code) {
+            switch (curr.code) {
                 case 2: // layer name
                     viewPort.name = curr.value;
                     curr = scanner.next();
@@ -512,7 +511,7 @@ DxfParser.prototype._parse = function(dxfString) {
                     break;
                 case 0:
                     // New ViewPort
-                    if(curr.value === 'VPORT') {
+                    if (curr.value === 'VPORT') {
                         log.debug('}');
                         viewPorts.push(viewPort);
                         log.debug('ViewPort {');
@@ -534,7 +533,7 @@ DxfParser.prototype._parse = function(dxfString) {
         return viewPorts;
     };
 
-    var parseLineTypes = function() {
+    var parseLineTypes = function () {
         var ltypes = {},
             ltypeName,
             ltype = {},
@@ -542,9 +541,9 @@ DxfParser.prototype._parse = function(dxfString) {
 
         log.debug('LType {');
         curr = scanner.next();
-        while(!groupIs(0, 'ENDTAB')) {
+        while (!groupIs(0, 'ENDTAB')) {
 
-            switch(curr.code) {
+            switch (curr.code) {
                 case 2:
                     ltype.name = curr.value;
                     ltypeName = curr.value;
@@ -556,7 +555,7 @@ DxfParser.prototype._parse = function(dxfString) {
                     break;
                 case 73: // Number of elements for this line type (dots, dashes, spaces);
                     length = curr.value;
-                    if(length > 0) ltype.pattern = [];
+                    if (length > 0) ltype.pattern = [];
                     curr = scanner.next();
                     break;
                 case 40: // total pattern length
@@ -587,16 +586,16 @@ DxfParser.prototype._parse = function(dxfString) {
         return ltypes;
     };
 
-    var parseLayers = function() {
+    var parseLayers = function () {
         var layers = {},
             layerName,
             layer = {};
 
         log.debug('Layer {');
         curr = scanner.next();
-        while(!groupIs(0, 'ENDTAB')) {
+        while (!groupIs(0, 'ENDTAB')) {
 
-            switch(curr.code) {
+            switch (curr.code) {
                 case 2: // layer name
                     layer.name = curr.value;
                     layerName = curr.value;
@@ -619,7 +618,7 @@ DxfParser.prototype._parse = function(dxfString) {
                     break;
                 case 0:
                     // New Layer
-                    if(curr.value === 'LAYER') {
+                    if (curr.value === 'LAYER') {
                         log.debug('}');
                         layers[layerName] = layer;
                         log.debug('Layer {');
@@ -642,40 +641,40 @@ DxfParser.prototype._parse = function(dxfString) {
         return layers;
     };
 
-    var parseDimStyles = function() {
+    var parseDimStyles = function () {
         var dimStyles = {},
             styleName,
             style = {};
 
         log.debug('DimStyle {');
         curr = scanner.next();
-        while(!groupIs(0, 'ENDTAB')) {
+        while (!groupIs(0, 'ENDTAB')) {
 
             if (dimStyleCodes.has(curr.code)) {
                 style[dimStyleCodes.get(curr.code)] = curr.value
                 curr = scanner.next();
             } else {
-                switch(curr.code) {
-                case 2: // style name
-                    style.name = curr.value;
-                    styleName = curr.value;
-                    curr = scanner.next();
-                    break;
-                case 0:
-                    // New style
-                    if(curr.value === 'DIMSTYLE') {
-                        log.debug('}');
-                        dimStyles[styleName] = style;
-                        log.debug('DimStyle {');
-                        style = {};
-                        styleName = undefined;
+                switch (curr.code) {
+                    case 2: // style name
+                        style.name = curr.value;
+                        styleName = curr.value;
                         curr = scanner.next();
-                    }
-                    break;
-                default:
-                    logUnhandledGroup(curr);
-                    curr = scanner.next();
-                    break;
+                        break;
+                    case 0:
+                        // New style
+                        if (curr.value === 'DIMSTYLE') {
+                            log.debug('}');
+                            dimStyles[styleName] = style;
+                            log.debug('DimStyle {');
+                            style = {};
+                            styleName = undefined;
+                            curr = scanner.next();
+                        }
+                        break;
+                    default:
+                        logUnhandledGroup(curr);
+                        curr = scanner.next();
+                        break;
                 }
             }
         }
@@ -800,7 +799,7 @@ DxfParser.prototype._parse = function(dxfString) {
      * should be on the start of the first entity already.
      * @return {Array} the resulting entities
      */
-    var parseEntities = function(forBlock) {
+    var parseEntities = function (forBlock) {
         var entities = [];
 
         var endingOnValue = forBlock ? 'ENDBLK' : 'ENDSEC';
@@ -808,10 +807,10 @@ DxfParser.prototype._parse = function(dxfString) {
         if (!forBlock) {
             curr = scanner.next();
         }
-        while(true) {
+        while (true) {
 
-            if(curr.code === 0) {
-                if(curr.value === endingOnValue) {
+            if (curr.code === 0) {
+                if (curr.value === endingOnValue) {
                     break;
                 }
 
@@ -847,7 +846,7 @@ DxfParser.prototype._parse = function(dxfString) {
      * y. The parser will determine if there is a z point automatically.
      * @return {Object} The 2D or 3D point as an object with x, y[, z]
      */
-    var parsePoint = function() {
+    var parsePoint = function () {
         var point = {},
             code = curr.code;
 
@@ -855,15 +854,14 @@ DxfParser.prototype._parse = function(dxfString) {
 
         code += 10;
         curr = scanner.next();
-        if(curr.code != code)
+        if (curr.code != code)
             throw new Error('Expected code for point value to be ' + code +
-            ' but got ' + curr.code + '.');
+                ' but got ' + curr.code + '.');
         point.y = curr.value;
 
         code += 10;
         curr = scanner.next();
-        if(curr.code != code)
-        {
+        if (curr.code != code) {
             scanner.rewind();
             return point;
         }
@@ -872,7 +870,7 @@ DxfParser.prototype._parse = function(dxfString) {
         return point;
     };
 
-    var ensureHandle = function(entity) {
+    var ensureHandle = function (entity) {
         if (!entity) {
             throw new TypeError('entity cannot be undefined or null');
         }

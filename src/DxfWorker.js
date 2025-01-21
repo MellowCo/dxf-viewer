@@ -1,5 +1,5 @@
-import {DxfFetcher} from "./DxfFetcher.js"
-import {DxfScene} from "./DxfScene.js"
+import { DxfFetcher } from "./DxfFetcher.js"
+import { DxfScene } from "./DxfScene.js"
 import opentype from "opentype.js"
 
 const MSG_SIGNATURE = "DxfWorkerMsg"
@@ -35,8 +35,8 @@ export class DxfWorker {
     async Load(url, fonts, options, progressCbk) {
         if (this.worker) {
             return this._SendRequest(DxfWorker.WorkerMsg.LOAD,
-                                     { url, fonts, options: this._CloneOptions(options) },
-                                     progressCbk)
+                { url, fonts, options: this._CloneOptions(options) },
+                progressCbk)
         } else {
             return this._Load(url, fonts, options, progressCbk)
         }
@@ -58,7 +58,7 @@ export class DxfWorker {
             console.log("Message with bad signature", msg)
             return
         }
-        const resp = {seq: msg.seq, type: msg.type, signature: MSG_SIGNATURE}
+        const resp = { seq: msg.seq, type: msg.type, signature: MSG_SIGNATURE }
         const transfers = []
         try {
             resp.data = await this._ProcessRequestMessage(msg.type, msg.data, transfers, msg.seq)
@@ -76,21 +76,21 @@ export class DxfWorker {
 
     async _ProcessRequestMessage(type, data, transfers, seq) {
         switch (type) {
-        case DxfWorker.WorkerMsg.LOAD: {
-            const {scene, dxf} = await this._Load(
-                data.url,
-                data.fonts,
-                data.options,
-                (phase, size, totalSize) => this._SendProgress(seq, phase, size, totalSize))
-            transfers.push(scene.vertices)
-            transfers.push(scene.indices)
-            transfers.push(scene.transforms)
-            return {scene, dxf}
-        }
-        case DxfWorker.WorkerMsg.DESTROY:
-            return null
-        default:
-            throw "Unknown message type: " + type
+            case DxfWorker.WorkerMsg.LOAD: {
+                const { scene, dxf } = await this._Load(
+                    data.url,
+                    data.fonts,
+                    data.options,
+                    (phase, size, totalSize) => this._SendProgress(seq, phase, size, totalSize))
+                transfers.push(scene.vertices)
+                transfers.push(scene.indices)
+                transfers.push(scene.transforms)
+                return { scene, dxf }
+            }
+            case DxfWorker.WorkerMsg.DESTROY:
+                return null
+            default:
+                throw "Unknown message type: " + type
         }
     }
 
@@ -130,7 +130,7 @@ export class DxfWorker {
         const seq = this.reqSeq++
         const req = new DxfWorker.Request(seq, progressCbk)
         this.requests.set(seq, req)
-        this.worker.postMessage({ seq, type, data, signature: MSG_SIGNATURE})
+        this.worker.postMessage({ seq, type, data, signature: MSG_SIGNATURE })
         return await req.GetResponse()
     }
 
@@ -138,7 +138,7 @@ export class DxfWorker {
         this.worker.postMessage({
             seq,
             type: DxfWorker.WorkerMsg.PROGRESS,
-            data: {phase, size, totalSize},
+            data: { phase, size, totalSize },
             signature: MSG_SIGNATURE
         })
     }
@@ -152,18 +152,20 @@ export class DxfWorker {
             fontFetchers = []
         }
         const dxf = await new DxfFetcher(url, options.fileEncoding).Fetch(progressCbk)
+
         if (progressCbk) {
             progressCbk("prepare", 0, null)
         }
         const dxfScene = new DxfScene(options)
         await dxfScene.Build(dxf, fontFetchers)
-        return {scene: dxfScene.scene, dxf: options.retainParsedDxf === true ? dxf : undefined }
+
+        return { scene: dxfScene.scene, dxf: options.retainParsedDxf === true ? dxf : undefined }
     }
 
     _CreateFontFetchers(urls, progressCbk) {
 
         function CreateFetcher(url) {
-            return async function() {
+            return async function () {
                 if (progressCbk) {
                     progressCbk("font", 0, null)
                 }
